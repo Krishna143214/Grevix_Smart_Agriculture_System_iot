@@ -1,0 +1,258 @@
+==================================================
+                     BASIC SETTINGS
+====================================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+
+    margin: 0;
+
+    font-family: Arial, sans-serif;
+
+    background: ;
+
+    color: #222;
+}
+
+
+/* ======================================================
+                       CONTAINER
+====================================================== */
+
+.container {
+
+    width: 92%;
+
+    max-width: 1100px;
+
+    margin: auto;
+
+    padding: 35px 0 50px;
+}
+
+
+/* ======================================================
+                        HEADER
+====================================================== */
+
+header {
+
+    text-align: center;
+
+    margin-bottom: 30px;
+}
+
+
+header h1 {
+
+    margin: 0;
+
+    font-size: 36px;
+}
+
+
+header p {
+
+    color: #666;
+
+    margin-top: 8px;
+}
+
+
+
+/* ======================================================
+                     STATUS SECTION
+====================================================== */
+
+.status-container {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 18px;
+
+    margin-bottom: 25px;
+}
+
+
+.status-card {
+
+    background: white;
+
+    padding: 22px;
+
+    border-radius: 14px;
+
+    text-align: center;
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+
+.status-card span {
+
+    display: block;
+
+    color: #666;
+
+    margin-bottom: 10px;
+}
+
+
+.status-card strong {
+
+    font-size: 20px;
+}
+
+
+
+/* ======================================================
+                    SENSOR CARDS
+====================================================== */
+
+.sensor-container {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 18px;
+
+    margin-bottom: 25px;
+}
+
+
+.sensor-card {
+
+    background: white;
+
+    padding: 25px;
+
+    border-radius: 14px;
+
+    text-align: center;
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+
+.sensor-card h2 {
+
+    font-size: 21px;
+
+    margin-top: 0;
+}
+
+
+.sensor-card p {
+
+    font-size: 34px;
+
+    font-weight: bold;
+
+    margin:
+        25px 0 10px;
+}
+
+
+.sensor-card small {
+
+    color: #666;
+
+    font-size: 16px;
+}
+
+
+
+/* ======================================================
+                      GRAPH CARDS
+====================================================== */
+
+.chart-card {
+
+    background: white;
+
+    padding: 22px;
+
+    border-radius: 14px;
+
+    margin-bottom: 25px;
+
+    box-shadow:
+        0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+
+.chart-card h2 {
+
+    margin-top: 0;
+
+    font-size: 23px;
+}
+
+
+.chart-box {
+
+    position: relative;
+
+    width: 100%;
+
+    height: 350px;
+}
+
+
+
+/* ======================================================
+                    CONNECTION STATUS
+====================================================== */
+
+#connectionStatus {
+
+    text-align: center;
+
+    color: #666;
+
+    margin-top: 30px;
+}
+
+
+
+/* ======================================================
+                    MOBILE VIEW
+====================================================== */
+
+@media (max-width: 750px) {
+
+    .status-container {
+
+        grid-template-columns: 1fr;
+    }
+
+
+    .sensor-container {
+
+        grid-template-columns: 1fr;
+    }
+
+
+    header h1 {
+
+        font-size: 29px;
+    }
+
+
+    .chart-box {
+
+        height: 280px;
+    }
+
+}
