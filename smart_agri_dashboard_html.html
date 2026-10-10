@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Smart Agriculture System</title>
+
+    <link rel="stylesheet" href="pallet2.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+
+<body>
+
+    <div class="container">
+
+
+        <!-- =================================================
+                            HEADER
+        ================================================== -->
+
+        <header>
+
+            <h1>🌱 Smart Agriculture System</h1>
+
+            <p>
+                IoT Plant Monitoring System
+            </p>
+
+        </header>
+
+
+        <!-- =================================================
+                          STATUS SECTION
+        ================================================== -->
+
+        <div class="status-container">
+
+
+            <div class="status-card">
+
+                <span>Plant Status</span>
+
+                <strong id="plantStatus">
+                    --
+                </strong>
+
+            </div>
+
+
+            <div class="status-card">
+
+                <span>Pump Status</span>
+
+                <strong id="pumpStatus">
+                    --
+                </strong>
+
+            </div>
+
+
+            <div class="status-card">
+
+                <span>Last Updated</span>
+
+                <strong id="lastUpdated">
+                    --
+                </strong>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =================================================
+                       CURRENT SENSOR DATA
+        ================================================== -->
+
+        <div class="sensor-container">
+
+
+            <!-- Temperature -->
+
+            <div class="sensor-card">
+
+                <h2>🌡️ Temperature</h2>
+
+                <p id="temperature">
+                    -- °C
+                </p>
+
+            </div>
+
+
+
+            <!-- Humidity -->
+
+            <div class="sensor-card">
+
+                <h2>💧 Humidity</h2>
+
+                <p id="humidity">
+                    -- %
+                </p>
+
+            </div>
+
+
+
+            <!-- Soil -->
+
+            <div class="sensor-card">
+
+                <h2>🌱 Soil Moisture</h2>
+
+                <p id="soil">
+                    -- %
+                </p>
+
+                <small id="soilCondition">
+                    --
+                </small>
+
+            </div>
+
+
+        </div>
+
+
+
+        <!-- =================================================
+                         TEMPERATURE GRAPH
+        ================================================== -->
+
+        <div class="chart-card">
+
+            <h2>🌡️ Temperature History</h2>
+
+            <div class="chart-box">
+
+                <canvas id="temperatureChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+                          HUMIDITY GRAPH
+        ================================================== -->
+
+        <div class="chart-card">
+
+            <h2>💧 Humidity History</h2>
+
+            <div class="chart-box">
+
+                <canvas id="humidityChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+                        SOIL MOISTURE GRAPH
+        ================================================== -->
+
+        <div class="chart-card">
+
+            <h2>🌱 Soil Moisture History</h2>
+
+            <div class="chart-box">
+
+                <canvas id="soilChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+                         CONNECTION STATUS
+        ================================================== -->
+
+        <p id="connectionStatus">
+            Connecting to Firebase...
+        </p>
+
+
+    </div>
+
+
+    <!-- =================================================
+                         JAVASCRIPT
+    ================================================== -->
+
+    <script
+        type="module"
+        src="script.js">
+    </script>
+
+
+</body>
+
+</html>
