@@ -1,3 +1,4 @@
+
 // ======================================================
 //                    LIBRARIES
 // ======================================================
@@ -27,6 +28,10 @@
 #define DATABASE_URL "https://smart-agri-system-d6044-default-rtdb.asia-southeast1.firebasedatabase.app/"
 #define API_KEY      "api_key"
 
+// Remote fault reset command:
+// Set Firebase Realtime Database path /resetPumpFault to boolean true.
+// The firmware clears the fault when the ultrasonic tank reading is valid.
+
 
 // ======================================================
 //                    SENSOR PINS
@@ -49,6 +54,18 @@
 #define FLOW_RATE_ML_SEC 25.0    // estimated flow; not measured by a flow sensor
 #define PUMP_VERIFY_TIMEOUT_MS 30000UL
 #define TANK_DROP_THRESHOLD_CM 2.0
+
+// ======================================================
+//                 DEEP SLEEP SETTINGS
+// ======================================================
+
+// ESP8266 deep sleep is limited to about 71 minutes per call.
+// Use six 60-minute sleep cycles to reach approximately 6 hours.
+#define SLEEP_INTERVAL_US 3600000000UL
+#define SLEEP_CYCLES 6
+#define RTC_MEMORY_ADDRESS 64
+#define RTC_MAGIC 0xA61B2026UL
+
 
 
 // ======================================================
@@ -73,12 +90,79 @@ float pumpStartDistance=-1;
 unsigned long pumpCheckStartedAt=0, lastFaultLedToggle=0;
 const char *pumpStatusText="Pump OFF";
 
+// RTC memory survives ESP8266 deep-sleep resets.
+struct SleepState {
+  uint32_t magic;
+  uint32_t sleepCycles;
+  float savedTotalWaterUsed;
+  uint32_t checksum;
+};
+
+SleepState sleepState;
+
+uint32_t makeSleepChecksum(const SleepState &state) {
+  return state.magic ^ state.sleepCycles ^
+         (uint32_t)(state.savedTotalWaterUsed * 1000.0f) ^
+         0x5A39C7E1UL;
+}
+
+bool readSleepState() {
+  if (!ESP.rtcUserMemoryRead(RTC_MEMORY_ADDRESS,
+                             (uint32_t *)&sleepState,
+                             sizeof(sleepState))) {
+    return false;
+  }
+
+  return sleepState.magic == RTC_MAGIC &&
+         sleepState.checksum == makeSleepChecksum(sleepState);
+}
+
+void saveSleepState() {
+  sleepState.magic = RTC_MAGIC;
+  sleepState.savedTotalWaterUsed = totalWaterUsed;
+  sleepState.checksum = makeSleepChecksum(sleepState);
+  ESP.rtcUserMemoryWrite(RTC_MEMORY_ADDRESS,
+                         (uint32_t *)&sleepState,
+                         sizeof(sleepState));
+}
+
+
 
 // ======================================================
 //                       SETUP
 // ======================================================
 
 void setup() {
+
+  // Keep the active-LOW pump relay OFF immediately after every reset.
+  pinMode(relay, OUTPUT);
+  digitalWrite(relay, HIGH);
+
+  if (readSleepState()) {
+    totalWaterUsed = sleepState.savedTotalWaterUsed;
+  } else {
+    sleepState.magic = RTC_MAGIC;
+    sleepState.sleepCycles = 0;
+    totalWaterUsed = 0.0;
+    saveSleepState();
+  }
+
+  // After each hourly wake-up, return to sleep until six hours have passed.
+  // The sixth completed hour allows the normal sensor/Firebase cycle to run.
+  if (sleepState.sleepCycles > 0 && sleepState.sleepCycles < SLEEP_CYCLES) {
+    sleepState.sleepCycles++;
+    saveSleepState();
+    delay(100);
+    ESP.deepSleep(SLEEP_INTERVAL_US);
+    delay(1000); // Deep sleep should reset the ESP; safety fallback.
+    while (true) {
+      yield();
+    }
+  } else if (sleepState.sleepCycles >= SLEEP_CYCLES) {
+    sleepState.sleepCycles = 0;
+    saveSleepState();
+  }
+
 
   // ----------------------------------------------------
   // Pump
@@ -343,6 +427,37 @@ void loop() {
 
 
   // ====================================================
+  //             REMOTE PUMP-FAULT RESET
+  // ====================================================
+  // To reset a fault, set /resetPumpFault = true in Firebase.
+  // The reset is accepted only when the ultrasonic tank reading is valid.
+  // The firmware then clears the command so it is not repeatedly processed.
+
+  if (Firebase.ready() && Firebase.RTDB.getBool(&fbdo, "/resetPumpFault")) {
+    if (fbdo.boolData()) {
+      if (tankReadingValid && tankLevel > 5) {
+        pumpFault = false;
+        pumpIsOn = false;
+        pumpCheckActive = false;
+        pumpStartDistance = -1;
+        pumpCheckStartedAt = 0;
+        faultLedState = false;
+        digitalWrite(relay, HIGH);   // Keep pump OFF during reset
+        digitalWrite(pumpled, LOW);
+        pumpStatusText = "Pump OFF";
+
+        Serial.println("Remote pump-fault reset accepted.");
+        Firebase.RTDB.setBool(&fbdo, "/resetPumpFault", false);
+        Firebase.RTDB.setString(&fbdo, "/pumpAlert", "Fault reset; monitoring resumed");
+      } else {
+        Serial.println("Fault reset rejected: tank reading is invalid or tank level is too low.");
+        // Leave /resetPumpFault true so the request can be retried
+        // after the ultrasonic sensor returns a valid reading.
+      }
+    }
+  }
+
+  // ====================================================
   //                    WATER PUMP
   // ====================================================
 
@@ -409,7 +524,7 @@ void loop() {
   unsigned long now = millis();
 
   if (digitalRead(relay) == LOW) {
-    totalWaterUsed += ((now - lastFlowUpdate) / 1000000.0) * FLOW_RATE_ML_SEC;
+    totalWaterUsed += ((now - lastFlowUpdate) / 1000.0) * FLOW_RATE_ML_SEC;
   }
 
   lastFlowUpdate = now;
@@ -762,19 +877,39 @@ void loop() {
 
 
   // ====================================================
-  //                       DELAY
+  //                SIX-HOUR DEEP SLEEP
   // ====================================================
 
-  // TESTING:
-  // One reading every 1 minute
+  // Do not sleep while watering or while a fault alert needs to keep blinking.
+  // Once irrigation is idle, sleep for six 60-minute cycles.
+  if (!pumpIsOn && !pumpFault) {
+    digitalWrite(relay, HIGH);
+    digitalWrite(pumpled, LOW);
 
-  unsigned long waitStartedAt=millis();
-  while (millis()-waitStartedAt < 10000UL) {
-    if (pumpFault && millis()-lastFaultLedToggle >= 500) {
-      lastFaultLedToggle=millis(); faultLedState=!faultLedState;
+    sleepState.sleepCycles = 1;
+    saveSleepState();
+
+    Serial.println("Entering deep sleep: next full reading in about 6 hours.");
+    delay(100);
+    ESP.deepSleep(SLEEP_INTERVAL_US);
+    delay(1000); // Safety fallback; deep sleep should reset the ESP.
+    while (true) {
+      yield();
+    }
+  }
+
+  // Keep monitoring active if the pump is running or a fault LED must blink.
+  unsigned long waitStartedAt = millis();
+  while (millis() - waitStartedAt < 10000UL) {
+    if (pumpFault && millis() - lastFaultLedToggle >= 500) {
+      lastFaultLedToggle = millis();
+      faultLedState = !faultLedState;
       digitalWrite(pumpled, faultLedState);
-    } else if (!pumpFault) digitalWrite(pumpled, pumpIsOn ? HIGH : LOW);
-    delay(10); yield();
+    } else if (!pumpFault) {
+      digitalWrite(pumpled, pumpIsOn ? HIGH : LOW);
+    }
+    delay(10);
+    yield();
   }
 
 }
