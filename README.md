@@ -139,7 +139,7 @@ If a real password or credential was already committed, deleting it from the lat
 
 ### Challenge Card 1 — Pump Failure Detection
 
-<img src="feedback/feedback_screenshots/feedback1.jpeg" alt="feedback1_img"/>
+
 
 The project was extended to address possible irrigation failures. The approach compares the expected change in tank water level with the actual change during watering. If the expected change does not occur, the system can flag a possible pump or water-flow issue.
 
@@ -149,14 +149,19 @@ Based on feedback, the project was extended with tank-level monitoring and water
 
 **Feedback 1 — Determining Crop Water Requirements**
 
-The feedback asked how the system determines the water requirements of different crops and whether it relies only on soil moisture.
 
-**Solution:** The current irrigation logic primarily uses soil-moisture readings. Tank-level monitoring and water-usage tracking can provide additional information about water availability and consumption. Crop type, soil type, weather conditions and plant growth stage could be included in a future version to support more crop-specific irrigation decisions; the current system does not yet calculate crop water requirements using all these factors.
+
+The feedback asked how the system determines the water requirements usage 
+
+<img src="feedback/feedback_screenshots/feedback1.jpeg" alt="feedback1_img"/>
+
+**Solution:** The current irrigation logic primarily uses the calculation of the pump flow in which is the pump is on it will pump 25ml water per second .so the calculation are done the ground of pump on timing. shown at the 4th block of the dashboard
 
 **Feedback 2 — Pump Fault Handling and Firmware Timing**
 
-The reviewer noted that the fault cleared only after the board rebooted, that the pump should remain stopped after a fault until someone resets it, and that the firmware loop ran every 10 seconds while its comment said one minute.
 
+The reviewer noted that the fault cleared only after the board rebooted, that the pump should remain stopped after a fault until someone resets it, and that the firmware loop ran every 10 seconds while its comment said one minute.
+<img src="feedback/feedback_screenshots/feedback1.jpeg" alt="feedback1_img"/>
 **Solutions worked on:**
 - **Remote fault reset:** Added a Firebase-based reset command so a user can request fault recovery from the dashboard without rebooting the ESP8266.
 - **Safety checks:** The reset workflow checks tank-level conditions before allowing recovery, helping avoid a restart when water conditions are unsuitable.
