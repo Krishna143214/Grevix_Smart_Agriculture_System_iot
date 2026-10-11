@@ -16,16 +16,16 @@
 //                    WIFI DETAILS
 // ======================================================
 
-#define WIFI_SSID     "your wifi name"
-#define WIFI_PASSWORD "your password"
+#define WIFI_SSID     "wifiname"
+#define WIFI_PASSWORD "pass"
 
 
 // ======================================================
 //                  FIREBASE DETAILS
 // ======================================================
 
-#define DATABASE_URL "your data base url from firebase"
-#define API_KEY      "your api_key form firebase"
+#define DATABASE_URL "https://smart-agri-system-d6044-default-rtdb.asia-southeast1.firebasedatabase.app/"
+#define API_KEY      "api_key"
 
 
 // ======================================================
@@ -37,6 +37,18 @@
 
 #define relay D4
 #define pumpled D5
+#define trig D8
+#define echo D7
+
+// ======================================================
+//                 TANK + FLOW SETTINGS
+// ======================================================
+
+#define TANK_EMPTY_DISTANCE 30   // cm
+#define TANK_FULL_DISTANCE 5     // cm
+#define FLOW_RATE_ML_SEC 25.0    // estimated flow; not measured by a flow sensor
+#define PUMP_VERIFY_TIMEOUT_MS 30000UL
+#define TANK_DROP_THRESHOLD_CM 2.0
 
 
 // ======================================================
@@ -47,14 +59,19 @@ Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
 DHT dht(DHTPIN, DHTTYPE);
 
-
-// Firebase objects
-
 FirebaseData fbdo;
 
 FirebaseAuth auth;
 
 FirebaseConfig config;
+
+float totalWaterUsed = 0.0;
+unsigned long lastFlowUpdate = 0;
+
+bool pumpIsOn=false, pumpFault=false, pumpCheckActive=false, faultLedState=false;
+float pumpStartDistance=-1;
+unsigned long pumpCheckStartedAt=0, lastFaultLedToggle=0;
+const char *pumpStatusText="Pump OFF";
 
 
 // ======================================================
@@ -69,8 +86,10 @@ void setup() {
 
   pinMode(relay, OUTPUT);
   pinMode(pumpled, OUTPUT);
+  pinMode(trig,OUTPUT);
+  pinMode(echo,INPUT);
 
-  digitalWrite(relay, LOW);
+  digitalWrite(relay, HIGH);  // Active-LOW relay: keep pump OFF at startup
 
 
   // ----------------------------------------------------
@@ -93,11 +112,24 @@ void setup() {
   // OLED
   // ----------------------------------------------------
 
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
-  display.clearDisplay();
+Wire.begin(D2, D1);   // SDA = D2, SCL = D1
 
-  display.setTextColor(WHITE);
+if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+  Serial.println("OLED initialization failed!");
+  while (true);
+}
+
+Serial.println("OLED initialization successful!");
+
+display.clearDisplay();
+display.setTextColor(WHITE);
+display.setTextSize(2);
+display.setCursor(0, 0);
+display.println("TEST");
+display.display();
+
+delay(2000);
 
 
   // ====================================================
@@ -108,7 +140,10 @@ void setup() {
 
   Serial.print("Connecting to WiFi");
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(
+    WIFI_SSID,
+    WIFI_PASSWORD
+  );
 
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -144,15 +179,24 @@ void setup() {
   Serial.println("Connecting to Firebase...");
 
 
-  if (Firebase.signUp(&config, &auth, "", "")) {
+  if (Firebase.signUp(
+        &config,
+        &auth,
+        "",
+        ""
+      )) {
 
-    Serial.println("Firebase signup successful!");
+    Serial.println(
+      "Firebase signup successful!"
+    );
 
   }
 
   else {
 
-    Serial.println("Firebase signup failed!");
+    Serial.println(
+      "Firebase signup failed!"
+    );
 
     Serial.println(
       config.signer.signupError.message.c_str()
@@ -164,9 +208,14 @@ void setup() {
   // Start Firebase
   // ----------------------------------------------------
 
-  Firebase.begin(&config, &auth);
+  Firebase.begin(
+    &config,
+    &auth
+  );
 
   Firebase.reconnectWiFi(true);
+
+  lastFlowUpdate = millis();
 
 }
 
@@ -184,9 +233,11 @@ void loop() {
 
   int value = analogRead(A0);
 
+
   int dry = 900;
 
   int wet = 300;
+
 
   int moisture = map(
     value,
@@ -196,6 +247,7 @@ void loop() {
     100
   );
 
+
   moisture = constrain(
     moisture,
     0,
@@ -203,11 +255,57 @@ void loop() {
   );
 
 
-  // Show raw value too
-
   Serial.print("Raw soil value: ");
 
   Serial.println(value);
+
+
+
+  
+  // ==================================================
+  //              Tank Monitor
+  // ==================================================
+  
+  unsigned long duration = 0;
+  long distance = -1;
+  int tankLevel = 0;
+  bool tankReadingValid = false;
+
+
+  digitalWrite(trig,LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig,HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig,LOW);
+  delayMicroseconds(2);
+
+  duration = pulseIn(echo, HIGH, 30000UL); // timeout avoids blocking forever
+
+  if (duration > 0) {
+    distance = (long)((duration * 0.0343) / 2.0);
+    tankReadingValid = (distance >= TANK_FULL_DISTANCE - 2 &&
+                        distance <= TANK_EMPTY_DISTANCE + 5);
+  }
+
+  if (tankReadingValid) {
+    tankLevel = map(distance, TANK_EMPTY_DISTANCE, TANK_FULL_DISTANCE, 0, 100);
+    tankLevel = constrain(tankLevel, 0, 100);
+  } else {
+    Serial.println("Tank reading invalid - pump verification may be unreliable");
+  }
+
+  Serial.print("Tank distance: ");
+  Serial.print(distance);
+  Serial.print(" cm | Tank level: ");
+  Serial.print(tankLevel);
+  Serial.println("%");
+
+
+
+
+  
+  
+
 
 
   // ====================================================
@@ -245,71 +343,86 @@ void loop() {
 
 
   // ====================================================
-  //                    OLED
+  //                    WATER PUMP
   // ====================================================
 
+  if (pumpFault) {
+    digitalWrite(relay, HIGH); pumpIsOn=false; pumpCheckActive=false;
+    pumpStatusText="Pump Malfunction";
+  } else if (moisture < 50) {
+    digitalWrite(relay, LOW); pumpStatusText="Pump ON";
+    if (!pumpIsOn) {
+      pumpIsOn=true; pumpCheckActive=true; pumpCheckStartedAt=millis();
+      pumpStartDistance=tankReadingValid ? distance : -1;
+    }
+  } else {
+    digitalWrite(relay, HIGH); pumpStatusText="Pump OFF";
+    pumpIsOn=false; pumpCheckActive=false; pumpStartDistance=-1;
+  }
+
+  if (pumpIsOn && pumpCheckActive && millis()-pumpCheckStartedAt >= PUMP_VERIFY_TIMEOUT_MS) {
+    if (!tankReadingValid || pumpStartDistance < 0 || distance-pumpStartDistance < TANK_DROP_THRESHOLD_CM) {
+      pumpFault=true; digitalWrite(relay, HIGH); pumpIsOn=false;
+      pumpCheckActive=false; pumpStatusText="Pump Malfunction";
+      Serial.println("Pump Malfunction / Check Hardware");
+    } else { pumpStartDistance=distance; pumpCheckStartedAt=millis(); }
+  }
+
+  // Refresh OLED after the pump state has been updated.
   display.clearDisplay();
-
   display.setTextSize(1);
-
-
+  display.setTextColor(WHITE);
   display.setCursor(0, 0);
-
-  display.println("      DATA");
-
-
-  display.setCursor(0, 17);
-
   display.print("Moisture: ");
-
   display.print(moisture);
-
   display.println("%");
-
-
-  display.setCursor(0, 34);
-
+  display.setCursor(0, 10);
   display.print("Temp: ");
-
   display.print(temperature);
-
   display.println(" C");
-
-
-  display.setCursor(0, 51);
-
+  display.setCursor(0, 20);
   display.print("Humidity: ");
-
   display.print(humidity);
-
   display.println("%");
-
-
+  display.setCursor(0, 30);
+  display.print("Tank: ");
+  if (tankReadingValid) {
+    display.print(tankLevel);
+    display.println("%");
+  } else {
+    display.println("Sensor error");
+  }
+  display.setCursor(0, 42);
+  display.print("Pump: ");
+  display.println(pumpStatusText);
+  if (pumpFault) {
+    display.setCursor(0, 54);
+    display.println("CHECK HARDWARE!");
+  }
   display.display();
 
 
   // ====================================================
-  //                    WATER PUMP
+  //                  WATER FLOW
   // ====================================================
 
-  if (moisture < 50) {
+  unsigned long now = millis();
 
-    digitalWrite(relay, LOW);
-
-    Serial.println("PUMP ON");
-
-    digitalWrite(pumpled, HIGH);
-
+  if (digitalRead(relay) == LOW) {
+    totalWaterUsed += ((now - lastFlowUpdate) / 1000000.0) * FLOW_RATE_ML_SEC;
   }
 
-  else {
+  lastFlowUpdate = now;
 
-    digitalWrite(relay, HIGH);
+  float flowRate = (digitalRead(relay) == LOW) ? FLOW_RATE_ML_SEC : 0.0;
 
-    Serial.println("PUMP OFF");
+  Serial.print("Flow rate: ");
+  Serial.print(flowRate);
+  Serial.println(" mL/s");
 
-    digitalWrite(pumpled, LOW);
-  }
+  Serial.print("Total water used: ");
+  Serial.print(totalWaterUsed);
+  Serial.println(" mL");
 
 
   // ====================================================
@@ -319,12 +432,21 @@ void loop() {
   if (Firebase.ready()) {
 
     Serial.println();
-    Serial.println("Firebase is READY");
+
+    Serial.println(
+      "Firebase is READY"
+    );
 
 
-    // --------------------------------------------------
-    // Temperature
-    // --------------------------------------------------
+      // ==================================================
+    if (!Firebase.RTDB.setString(&fbdo, "/pumpStatus", pumpFault ? "Pump Malfunction / Check Hardware" : pumpStatusText))
+      Serial.println("Pump status upload failed");
+    Firebase.RTDB.setBool(&fbdo, "/pumpFault", pumpFault);
+    Firebase.RTDB.setString(&fbdo, "/pumpAlert", pumpFault ? "Pump Malfunction / Check Hardware" : "No pump fault");
+
+  // ==================================================
+    //              CURRENT TEMPERATURE
+    // ==================================================
 
     if (Firebase.RTDB.setFloat(
           &fbdo,
@@ -350,9 +472,9 @@ void loop() {
     }
 
 
-    // --------------------------------------------------
-    // Humidity
-    // --------------------------------------------------
+    // ==================================================
+    //              CURRENT HUMIDITY
+    // ==================================================
 
     if (Firebase.RTDB.setFloat(
           &fbdo,
@@ -378,9 +500,9 @@ void loop() {
     }
 
 
-    // --------------------------------------------------
-    // Soil moisture
-    // --------------------------------------------------
+    // ==================================================
+    //              CURRENT SOIL MOISTURE
+    // ==================================================
 
     if (Firebase.RTDB.setInt(
           &fbdo,
@@ -405,6 +527,228 @@ void loop() {
       );
     }
 
+
+    // ==================================================
+    //                    TANK
+    // ==================================================
+
+    if (Firebase.RTDB.setInt(
+          &fbdo,
+          "/sensor/tankDistance",
+          distance
+        )) {
+
+      Serial.println("Tank distance sent!");
+
+    }
+    else {
+
+      Serial.print("Tank distance error: ");
+      Serial.println(fbdo.errorReason());
+    }
+
+
+    if (Firebase.RTDB.setInt(
+          &fbdo,
+          "/sensor/tankLevel",
+          tankLevel
+        )) {
+
+      Serial.println("Tank level sent!");
+
+    }
+    else {
+
+      Serial.print("Tank level error: ");
+      Serial.println(fbdo.errorReason());
+    }
+
+
+    // ==================================================
+    //                    WATER FLOW
+    // ==================================================
+
+    if (Firebase.RTDB.setFloat(
+          &fbdo,
+          "/sensor/flowRate",
+          flowRate
+        )) {
+
+      Serial.println("Flow rate sent!");
+
+    }
+    else {
+
+      Serial.print("Flow rate error: ");
+      Serial.println(fbdo.errorReason());
+    }
+
+
+    if (Firebase.RTDB.setFloat(
+          &fbdo,
+          "/sensor/totalWaterUsed",
+          totalWaterUsed
+        )) {
+
+      Serial.println("Total water used sent!");
+
+    }
+    else {
+
+      Serial.print("Total water used error: ");
+      Serial.println(fbdo.errorReason());
+    }
+
+
+    // ==================================================
+    //                 LAST UPDATED
+    // ==================================================
+
+    if (Firebase.RTDB.setTimestamp(
+          &fbdo,
+          "/sensor/lastUpdated"
+        )) {
+
+      Serial.println(
+        "Last updated time saved!"
+      );
+
+    }
+
+    else {
+
+      Serial.print(
+        "Timestamp error: "
+      );
+
+      Serial.println(
+        fbdo.errorReason()
+      );
+    }
+
+
+    // ==================================================
+    //                  HISTORY
+    // ==================================================
+
+    FirebaseJson history;
+
+
+    history.add(
+      "temperature",
+      temperature
+    );
+
+
+    history.add(
+      "humidity",
+      humidity
+    );
+
+
+    history.add(
+      "soil",
+      moisture
+    );
+
+    history.add(
+      "tankDistance",
+      distance
+    );
+
+    history.add(
+      "tankLevel",
+      tankLevel
+    );
+
+    history.add(
+      "flowRate",
+      flowRate
+    );
+
+    history.add(
+      "totalWaterUsed",
+      totalWaterUsed
+    );
+
+
+    // --------------------------------------------------
+    // Create a new history entry
+    // --------------------------------------------------
+
+    if (Firebase.RTDB.pushJSON(
+          &fbdo,
+          "/history",
+          &history
+        )) {
+
+      Serial.println(
+        "History saved!"
+      );
+
+
+      // ------------------------------------------------
+      // Get the automatically generated key
+      // ------------------------------------------------
+
+      String historyKey =
+        fbdo.pushName();
+
+
+      Serial.print(
+        "History key: "
+      );
+
+      Serial.println(
+        historyKey
+      );
+
+
+      // ------------------------------------------------
+      // Save timestamp inside that entry
+      // ------------------------------------------------
+
+      String historyPath =
+        "/history/" +
+        historyKey +
+        "/timestamp";
+
+
+      if (Firebase.RTDB.setTimestamp(
+            &fbdo,
+            historyPath
+          )) {
+
+        Serial.println(
+          "History timestamp saved!"
+        );
+
+      }
+
+      else {
+
+        Serial.print(
+          "History timestamp error: "
+        );
+
+        Serial.println(
+          fbdo.errorReason()
+        );
+      }
+
+    }
+
+    else {
+
+      Serial.print(
+        "History error: "
+      );
+
+      Serial.println(
+        fbdo.errorReason()
+      );
+    }
+
   }
 
   else {
@@ -421,6 +765,16 @@ void loop() {
   //                       DELAY
   // ====================================================
 
-  delay(1000);
+  // TESTING:
+  // One reading every 1 minute
+
+  unsigned long waitStartedAt=millis();
+  while (millis()-waitStartedAt < 10000UL) {
+    if (pumpFault && millis()-lastFaultLedToggle >= 500) {
+      lastFaultLedToggle=millis(); faultLedState=!faultLedState;
+      digitalWrite(pumpled, faultLedState);
+    } else if (!pumpFault) digitalWrite(pumpled, pumpIsOn ? HIGH : LOW);
+    delay(10); yield();
+  }
 
 }
