@@ -13,10 +13,10 @@
 
 ## Demo & Project Links
 
-- **Live Demo:** [Add your dashboard link]
-- **GitHub Repository:** [Add your public repository link]
-- **Project Presentation:** [Add your presentation link]
-- **Demo Video:** [Add your video link, if available]
+
+- **GitHub Repository:** [https://github.com/Krishna143214/Grevix_Smart_Agriculture_System_iot.git]
+- **Demo Video:** [https://www.instagram.com/p/DeW993iGkqy/?utm_source=ig_web_copy_link&exln=NTc4MTIwNjQ2YQ==]
+- -**Linkdin** [https://lnkd.in/p/drqTJf_u]
 
 ## Technologies & AI Tools Used
 
