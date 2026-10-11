@@ -1,135 +1,65 @@
-# Grevix_Smart_Agriculture_System_iot
 
+# AgriSense — IoT Smart Agriculture System 🌱
 
-# AgriSense - IoT Smart Agriculture System 🌱
+## Project Name & Description
 
-AgriSense is my IoT-based smart agriculture project. I made it to monitor the basic conditions of a plant and automate watering when the soil gets dry.
+**AgriSense** is an IoT-based smart agriculture system built for the Grevix Hackathon. It monitors soil moisture, temperature, and humidity, automates irrigation, and displays real-time sensor data through an OLED display and Firebase-powered dashboard.
 
-The idea is simple: instead of checking the soil again and again, the system reads soil moisture, temperature and humidity, shows the readings on an OLED display, and sends the data to Firebase so I can check it on a dashboard.
+## Problem & Solution
 
-## Features
+**Problem:** Traditional irrigation requires regular manual monitoring, can waste water, and provides limited visibility into plant conditions and irrigation issues.
 
-- Reads soil moisture using a soil moisture sensor.
-- Measures temperature and air humidity using a DHT11.
-- Shows readings on a 128x64 I2C OLED display.
-- Automatically controls the water pump through a relay when soil moisture drops below the threshold.
-- Sends temperature, humidity and soil moisture to Firebase Realtime Database.
-- Displays current readings and history graphs on the web dashboard.
-- Includes dashboard cards for tank level, water flow and total water used when those values are available in Firebase.
-- Shows plant status, pump status and the last update time.
+**Solution:** AgriSense automates watering based on soil moisture and provides remote monitoring through a Firebase dashboard. The planned extensions include tank-level monitoring, water-usage tracking, and irrigation fault detection.
 
-**Current firmware note:** the firmware shared with this project currently uploads temperature, humidity and soil moisture. The tank and flow cards need firmware or another process to upload their corresponding values.
+## Demo & Project Links
 
-## Hardware Used
+- **Live Demo:** [Add your dashboard link]
+- **GitHub Repository:** [Add your public repository link]
+- **Project Presentation:** [Add your presentation link]
+- **Demo Video:** [Add your video link, if available]
 
-| Component | Purpose |
-|---|---|
-| NodeMCU ESP8266 | Main controller and Wi-Fi |
-| DHT11 | Temperature and humidity |
-| Soil moisture sensor | Soil moisture measurement |
-| 128x64 I2C OLED (SSD1306) | Local readings |
-| Relay module | Pump switching |
-| Water pump | Watering the plant |
-| Jumper wires and power supply | Connections and power |
+## Technologies & AI Tools Used
 
-## Software Used
+**Hardware**
 
-- Arduino IDE and ESP8266 board package
+- NodeMCU ESP8266
+- DHT11 temperature and humidity sensor
+- Soil moisture sensor
+- SSD1306 OLED display
+- Relay module and water pump
+- UltraSonic sensor
+
+**Software**
+
+- Arduino IDE and C++
 - Firebase Realtime Database
-- HTML, CSS and JavaScript
+- HTML, CSS, and JavaScript
 - Chart.js
-- DHT library
-- Adafruit GFX and Adafruit SSD1306
-- Firebase ESP Client library
 
-## How It Works
+**AI Tools:** [Add the AI tools you actually used and briefly explain how you used them.]
 
-1. NodeMCU connects to Wi-Fi.
-2. It initializes Firebase.
-3. The soil sensor is read through `A0`.
-4. DHT11 reads temperature and humidity.
-5. The OLED displays the latest readings.
-6. If soil moisture is below **50%**, the firmware sets the relay to turn the pump on. Otherwise, it turns it off.
-7. Temperature, humidity and soil moisture are uploaded to Firebase.
-8. The dashboard reads Firebase and updates the sensor cards and charts.
+## Project Evolution Through the Two Challenge Cards
 
+### Challenge Card 1 — Pump Failure Detection
 
+The project was extended to address possible irrigation failures. The proposed approach compares the expected change in tank water level with the actual change during watering. If the expected change does not occur, the system can flag a possible pump or water-flow issue.
 
-## Firebase Data
+### Challenge Card 2 — Water Monitoring & Usage Tracking
 
-The current firmware writes to the `sensor` node:
+Based on feedback, the project was extended with tank-level monitoring and water-flow and total-water-usage tracking. These additions aim to improve water management and make irrigation more reliable.
 
-```json
-{
-  "sensor": {
-    "temperature": 27.4,
-    "humidity": 73.9,
-    "soil": 42
-  }
-}
-```
+**Implementation status:** The firmware and Firebase integration must provide the relevant readings for these features to work in the live system. Verify that both challenge-card features are implemented and tested before describing them as completed.
 
-The dashboard also reads a `history` node. Each history record is expected to include `temperature`, `humidity`, `soil` and `timestamp`. The supplied firmware does not currently write history records, so the charts need a separate history-writing process or additional firmware logic.
+## Build Log / Decision Log
 
-The dashboard also looks for `tankLevel`, `tankDistance`, `flowRate` and `totalWaterUsed` under `sensor`. Those values are not sent by the firmware shown here yet.
+- **Initial build:** Connected the ESP8266, soil moisture sensor, DHT11, OLED display, relay, and water pump.
+- **Automation:** Added pump control based on the soil-moisture threshold.
+- **Remote monitoring:** Integrated Firebase Realtime Database and developed a dashboard for sensor readings and graphs.
+- **Challenge-driven improvements:** Planned pump-failure detection, tank monitoring, and water-usage tracking based on the challenge requirements and feedback.
+- **Key decision:** Used the ESP8266 for its built-in Wi-Fi, enabling remote monitoring without requiring a separate Wi-Fi module.
 
-## Setup
+## Project Goal
 
-### Firmware
+AgriSense aims to reduce manual irrigation effort, improve visibility into plant conditions, and support smarter water management through IoT and automation.
 
-1. Install Arduino IDE.
-2. Install the ESP8266 board package and the libraries listed above.
-3. Open the firmware `.ino` file and select your NodeMCU board.
-4. Set your Wi-Fi and Firebase configuration.
-5. Upload the code and open Serial Monitor at **9600 baud**.
-
-Replace the placeholder values:
-
-```cpp
-#define WIFI_SSID     "your_wifi_name"
-#define WIFI_PASSWORD "your_pass"
-
-#define DATABASE_URL "https://your-project-default-rtdb.region.firebasedatabase.app/"
-#define API_KEY      "your_firebase_web_api_key"
-```
-
-### Dashboard
-
-Keep the HTML, CSS and JS files in the same folder. The HTML links to `style.css` and loads `script.js` as a JavaScript module. Run it through a local development server, such as VS Code Live Server, or host it online; opening it directly as a `file://` page may not work reliably with Firebase modules.
-
-Update the Firebase web configuration in `script.js` to match your Firebase project.
-
-## Important Notes
-
-- **Soil calibration:** the firmware uses `dry = 900` and `wet = 300`. Calibrate these values for your sensor and soil.
-- **Relay logic:** the code assumes `LOW` turns the relay/pump on and `HIGH` turns it off. Relay modules can differ, so test this before connecting the pump.
-- **Pump power:** never power a pump directly from an ESP8266 GPIO pin. Use an appropriate external supply and a relay/driver rated for the pump.
-- **DHT11 errors:** failed reads can return invalid values. Check Serial Monitor if readings look wrong.
-- **Firebase authentication:** the firmware attempts anonymous signup. Enable and configure the relevant Firebase Authentication method and Realtime Database rules.
-- **Database rules:** do not leave the database publicly readable and writable for a public deployment.
-
-
-
-
-
-## Suggested Project Structure
-
-```text
-AgriSense/
-├── firmware/
-│   ├── AgriSense.ino
-│   ├── secrets.example.h
-│   └── secrets.h       # local only; do not upload
-├── dashboard/
-│   ├── index.html
-│   ├── script.js
-│   └── style.css
-├── .gitignore
-└── README.md
-```
-
-This is a suggested layout; use the filenames and folders in your actual repository.
-
----
-
-Made as my IoT smart agriculture project using NodeMCU ESP8266, sensors, Firebase and a web dashboard. 🌱
+**Built for the Grevix Hackathon** 🌱
