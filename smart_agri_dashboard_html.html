@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,7 +18,7 @@
         <div class="brand">
             <div class="brand-mark">🌿</div>
             <div>
-                <h1>AgriHelp</h1>
+                <h1>AgriSense</h1>
                 <p>Smart Agriculture</p>
             </div>
         </div>
@@ -95,14 +96,6 @@
                 <small>Latest Firebase reading</small>
             </div>
 
-        </section>
-
-        <section id="pumpAlertBanner" class="pump-alert hidden" role="alert" aria-live="assertive">
-            <span class="pump-alert-icon">⚠</span>
-            <div>
-                <strong id="pumpAlertTitle">Pump Malfunction / Check Hardware</strong>
-                <p id="pumpAlertMessage">Pump verification failed. Check the pump, relay and water tank.</p>
-            </div>
         </section>
 
 
@@ -192,6 +185,19 @@
             </div>
         </section>
 
+        <!-- PUMP FAULT RESET CONTROL -->
+        <section class="fault-control-card" aria-labelledby="faultControlTitle">
+            <div class="fault-control-copy">
+                <div class="irrigation-kicker">MAINTENANCE</div>
+                <h3 id="faultControlTitle">Pump Fault Recovery</h3>
+                <p>If a pump fault is detected, check the pump, wiring, water supply, and ultrasonic sensor before requesting a reset.</p>
+                <small class="fault-safety-note">Reset is accepted only when the tank reading is valid and the tank level is above 5%.</small>
+            </div>
+            <div class="fault-control-actions">
+                <button id="resetPumpFaultBtn" class="reset-fault-button" type="button">Reset Pump Fault</button>
+                <p id="resetPumpFaultMessage" class="reset-fault-message" role="status" aria-live="polite">No reset request sent.</p>
+            </div>
+        </section>
 
         <!-- EXISTING HISTORY CHARTS -->
         <section id="historySection" class="section-heading charts-heading page-anchor">
