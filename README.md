@@ -139,6 +139,8 @@ If a real password or credential was already committed, deleting it from the lat
 
 ### Challenge Card 1 — Pump Failure Detection
 
+feedback/feedback_screenshots/feedback1.jpeg
+
 The project was extended to address possible irrigation failures. The approach compares the expected change in tank water level with the actual change during watering. If the expected change does not occur, the system can flag a possible pump or water-flow issue.
 
 ### Challenge Card 2 — Water Monitoring & Usage Tracking
