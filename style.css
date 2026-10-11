@@ -432,43 +432,83 @@ body {
     background: #f0b34f;
 }
 
-/* Pump fault alert */
-.pump-alert {
+/* Pump fault recovery controls */
+.fault-control-card {
+    margin: 14px 0 24px;
+    padding: 20px 22px;
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.fault-control-copy {
+    max-width: 680px;
+}
+
+.fault-control-copy h3 {
+    margin: 6px 0 8px;
+    font-size: 17px;
+}
+
+.fault-control-copy p {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.fault-safety-note {
+    color: #8a6a2e;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.fault-control-actions {
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
-    margin: 0 0 20px;
-    padding: 15px 17px;
-    border: 1px solid #efaaa6;
-    border-left: 5px solid #d93636;
-    border-radius: 12px;
-    background: #fff0ef;
-    color: #842323;
-    box-shadow: 0 6px 18px rgba(150, 30, 30, .08);
+    gap: 9px;
 }
-.pump-alert.hidden { display: none; }
-.pump-alert-icon {
-    display: grid;
-    place-items: center;
-    flex: 0 0 30px;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #d93636;
+
+.reset-fault-button {
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 16px;
+    background: var(--green-dark);
     color: #fff;
-    font-weight: 800;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s ease, transform .2s ease;
 }
-.pump-alert strong { display: block; font-size: 14px; }
-.pump-alert p { margin: 5px 0 0; font-size: 12px; line-height: 1.5; }
-.status-card-fault {
-    border-color: #e65b56;
-    background: #fff4f3;
+
+.reset-fault-button:hover:not(:disabled) {
+    opacity: .9;
+    transform: translateY(-1px);
 }
-.status-card-fault strong, .pump-status-fault strong { color: #c62828; }
-.pump-status-fault {
-    border-color: #e65b56;
-    background: #fff0ef;
+
+.reset-fault-button:disabled {
+    opacity: .55;
+    cursor: wait;
 }
+
+.reset-fault-message {
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.reset-fault-message.pending { color: #946a12; }
+.reset-fault-message.success { color: var(--green-dark); }
+.reset-fault-message.error,
+.pump-fault-active { color: #c43d36 !important; }
 
 @media (max-width: 1050px) {
     .sidebar {
@@ -543,4 +583,20 @@ body {
         align-items: flex-start;
         flex-direction: column;
     }
+
+    .fault-control-card {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 17px;
+    }
+
+    .fault-control-actions {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .reset-fault-button {
+        width: 100%;
+    }
 }
+
