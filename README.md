@@ -161,7 +161,7 @@ The feedback asked how the system determines the water requirements usage
 
 
 The reviewer noted that the fault cleared only after the board rebooted, that the pump should remain stopped after a fault until someone resets it, and that the firmware loop ran every 10 seconds while its comment said one minute.
-<img src="feedback/feedback_screenshots/feedback1.jpeg" alt="feedback1_img"/>
+<img src="feedback/feedback_screenshots/feedback2.jpeg" alt="feedback1_img"/>
 **Solutions worked on:**
 - **Remote fault reset:** Added a Firebase-based reset command so a user can request fault recovery from the dashboard without rebooting the ESP8266.
 - **Safety checks:** The reset workflow checks tank-level conditions before allowing recovery, helping avoid a restart when water conditions are unsuitable.
