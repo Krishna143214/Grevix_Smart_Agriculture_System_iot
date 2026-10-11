@@ -1,218 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Smart Agriculture System</title>
-
-    <link rel="stylesheet" href="pallet2.css">
-
-    <!-- Chart.js -->
+    <title>AgriSense - Smart Agriculture</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
-
 
 <body>
 
-    <div class="container">
+<div class="app-shell">
+
+    <!-- SIDEBAR - VISUAL ONLY, SINGLE PAGE -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">🌿</div>
+            <div>
+                <h1>AgriHelp</h1>
+                <p>Smart Agriculture</p>
+            </div>
+        </div>
+
+        <nav class="sidebar-menu" aria-label="Dashboard sections">
+            <a class="menu-item active" href="#dashboardSection">
+                <span class="menu-icon">⌂</span>
+                <span>Dashboard</span>
+            </a>
+            <a class="menu-item" href="#sensorDataSection">
+                <span class="menu-icon">◫</span>
+                <span>Sensor Data</span>
+            </a>
+            <a class="menu-item" href="#historySection">
+                <span class="menu-icon">⌁</span>
+                <span>History</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-status">
+            <div class="sidebar-status-title">System Status</div>
+            <div class="status-line">
+                <span class="status-dot" id="sidebarStatusDot"></span>
+                <span id="sidebarStatusText">Connecting...</span>
+            </div>
+            <div class="status-line muted">
+                <span class="status-dot small" id="espStatusDot"></span>
+                <span id="espStatusText">ESP Connecting...</span>
+            </div>
+            <div class="status-line muted">
+                <span class="status-dot small" id="firebaseStatusDot"></span>
+                <span id="firebaseStatusText">Firebase Connecting...</span>
+            </div>
+        </div>
+    </aside>
 
 
-        <!-- =================================================
-                            HEADER
-        ================================================== -->
+    <!-- SINGLE PAGE CONTENT -->
+    <main class="main-content">
 
-        <header>
+        <section id="dashboardSection" class="page-anchor" aria-label="Dashboard">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">IoT Plant Monitoring System</p>
+                <h2>Good Morning, Farmer! 👋</h2>
+                <p class="subtitle">Here's what's happening with your farm today.</p>
+            </div>
 
-            <h1>🌱 Smart Agriculture System</h1>
-
-            <p>
-                IoT Plant Monitoring System
-            </p>
-
+            <div class="topbar-date">
+                <span>Today</span>
+                <strong id="topbarDate">--</strong>
+            </div>
         </header>
+        </section>
 
 
-        <!-- =================================================
-                          STATUS SECTION
-        ================================================== -->
-
-        <div class="status-container">
-
+        <!-- EXISTING STATUS FEATURES -->
+        <section class="status-container">
 
             <div class="status-card">
-
-                <span>Plant Status</span>
-
-                <strong id="plantStatus">
-                    --
-                </strong>
-
+                <div class="card-label">Plant Status</div>
+                <strong id="plantStatus">--</strong>
+                <small>Based on soil moisture</small>
             </div>
-
 
             <div class="status-card">
-
-                <span>Pump Status</span>
-
-                <strong id="pumpStatus">
-                    --
-                </strong>
-
+                <div class="card-label">Pump Status</div>
+                <strong id="pumpStatus">--</strong>
+                <small>Automatic irrigation state</small>
             </div>
-
 
             <div class="status-card">
-
-                <span>Last Updated</span>
-
-                <strong id="lastUpdated">
-                    --
-                </strong>
-
+                <div class="card-label">Last Updated</div>
+                <strong id="lastUpdated">--</strong>
+                <small>Latest Firebase reading</small>
             </div>
 
+        </section>
 
-        </div>
+        <section id="pumpAlertBanner" class="pump-alert hidden" role="alert" aria-live="assertive">
+            <span class="pump-alert-icon">⚠</span>
+            <div>
+                <strong id="pumpAlertTitle">Pump Malfunction / Check Hardware</strong>
+                <p id="pumpAlertMessage">Pump verification failed. Check the pump, relay and water tank.</p>
+            </div>
+        </section>
 
 
+        <!-- EXISTING SENSOR FEATURES -->
+        <section id="sensorDataSection" class="section-heading page-anchor">
+            <div>
+                <h3>Current Farm Conditions</h3>
+                <p>Live values received from your connected sensors.</p>
+            </div>
+        </section>
 
-        <!-- =================================================
-                       CURRENT SENSOR DATA
-        ================================================== -->
+        <section class="sensor-container">
 
-        <div class="sensor-container">
-
-
-            <!-- Temperature -->
-
-            <div class="sensor-card">
-
-                <h2>🌡️ Temperature</h2>
-
-                <p id="temperature">
-                    -- °C
-                </p>
-
+            <div class="sensor-card temperature-card">
+                <div class="sensor-top">
+                    <div class="sensor-icon">🌡️</div>
+                    <span class="sensor-tag">Air</span>
+                </div>
+                <h3>Temperature</h3>
+                <p id="temperature">-- °C</p>
+                <small>Ambient temperature</small>
             </div>
 
-
-
-            <!-- Humidity -->
-
-            <div class="sensor-card">
-
-                <h2>💧 Humidity</h2>
-
-                <p id="humidity">
-                    -- %
-                </p>
-
+            <div class="sensor-card soil-card">
+                <div class="sensor-top">
+                    <div class="sensor-icon">🌱</div>
+                    <span class="sensor-tag">Soil</span>
+                </div>
+                <h3>Soil Moisture</h3>
+                <p id="soil">-- %</p>
+                <small id="soilCondition">--</small>
             </div>
 
-
-
-            <!-- Soil -->
-
-            <div class="sensor-card">
-
-                <h2>🌱 Soil Moisture</h2>
-
-                <p id="soil">
-                    -- %
-                </p>
-
-                <small id="soilCondition">
-                    --
-                </small>
-
+            <div class="sensor-card humidity-card">
+                <div class="sensor-top">
+                    <div class="sensor-icon">💧</div>
+                    <span class="sensor-tag">Air</span>
+                </div>
+                <h3>Humidity</h3>
+                <p id="humidity">-- %</p>
+                <small>Relative humidity</small>
             </div>
 
-
-        </div>
-
-
-
-        <!-- =================================================
-                         TEMPERATURE GRAPH
-        ================================================== -->
-
-        <div class="chart-card">
-
-            <h2>🌡️ Temperature History</h2>
-
-            <div class="chart-box">
-
-                <canvas id="temperatureChart"></canvas>
-
+            <div class="sensor-card tank-card">
+                <div class="sensor-top">
+                    <div class="sensor-icon">🛢️</div>
+                    <span class="sensor-tag">Tank</span>
+                </div>
+                <h3>Tank Level</h3>
+                <p id="tankLevel">-- %</p>
+                <small id="tankDistance">Distance: -- cm</small>
             </div>
 
-        </div>
-
-
-
-        <!-- =================================================
-                          HUMIDITY GRAPH
-        ================================================== -->
-
-        <div class="chart-card">
-
-            <h2>💧 Humidity History</h2>
-
-            <div class="chart-box">
-
-                <canvas id="humidityChart"></canvas>
-
+            <div class="sensor-card flow-card">
+                <div class="sensor-top">
+                    <div class="sensor-icon">💦</div>
+                    <span class="sensor-tag">Pump</span>
+                </div>
+                <h3>Water Flow</h3>
+                <p id="flowRate">-- mL/s</p>
+                <small>Estimated pump flow</small>
             </div>
 
-        </div>
-
-
-
-        <!-- =================================================
-                        SOIL MOISTURE GRAPH
-        ================================================== -->
-
-        <div class="chart-card">
-
-            <h2>🌱 Soil Moisture History</h2>
-
-            <div class="chart-box">
-
-                <canvas id="soilChart"></canvas>
-
+            <div class="sensor-card water-card">
+                <div class="sensor-top">
+                    <div class="sensor-icon">🚰</div>
+                    <span class="sensor-tag">Usage</span>
+                </div>
+                <h3>Total Water Used</h3>
+                <p id="totalWaterUsed">-- L</p>
+                <small>Total estimated water</small>
             </div>
 
-        </div>
+        </section>
 
 
+        <!-- EXISTING PUMP FEATURE, PRESENTED LIKE BLUEPRINT -->
+        <section class="irrigation-card">
+            <div>
+                <div class="irrigation-kicker">IRRIGATION STATUS</div>
+                <h3>Automatic Watering</h3>
+                <p>Current pump state is determined from the live soil moisture reading.</p>
+            </div>
+            <div class="pump-status-box">
+                <span class="pump-status-label">Pump</span>
+                <strong id="pumpStatusMirror">--</strong>
+            </div>
+        </section>
 
-        <!-- =================================================
-                         CONNECTION STATUS
-        ================================================== -->
 
-        <p id="connectionStatus">
-            Connecting to Firebase...
-        </p>
+        <!-- EXISTING HISTORY CHARTS -->
+        <section id="historySection" class="section-heading charts-heading page-anchor">
+            <div>
+                <h3>Sensor History</h3>
+                <p>Historical values stored in Firebase.</p>
+            </div>
+        </section>
+
+        <section class="charts-grid">
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <span class="chart-kicker">TEMPERATURE</span>
+                        <h3>Temperature History</h3>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="temperatureChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <span class="chart-kicker">HUMIDITY</span>
+                        <h3>Humidity History</h3>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="humidityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card chart-card-wide">
+                <div class="chart-header">
+                    <div>
+                        <span class="chart-kicker">SOIL</span>
+                        <h3>Soil Moisture History</h3>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="soilChart"></canvas>
+                </div>
+            </div>
+
+        </section>
 
 
-    </div>
+        <!-- EXISTING CONNECTION FEATURE -->
+        <footer class="connection-footer">
+            <span class="footer-dot"></span>
+            <span id="connectionStatus">Connecting to Firebase...</span>
+        </footer>
+
+    </main>
+</div>
 
 
-    <!-- =================================================
-                         JAVASCRIPT
-    ================================================== -->
+<script>
+    // Keep the existing single-page Firebase script unchanged.
+    // Mirror pump status and make the sidebar jump to sections on this same page.
+    document.addEventListener("DOMContentLoaded", () => {
+        const original = document.getElementById("pumpStatus");
+        const mirror = document.getElementById("pumpStatusMirror");
+        const observer = new MutationObserver(() => {
+            if (original && mirror) mirror.textContent = original.textContent.trim() || "--";
+        });
+        if (original && mirror) {
+            observer.observe(original, { childList: true, subtree: true, characterData: true });
+            mirror.textContent = original.textContent.trim() || "--";
+        }
 
-    <script
-        type="module"
-        src="script.js">
-    </script>
+        const navItems = [...document.querySelectorAll(".sidebar-menu .menu-item")];
+        const sections = [
+            document.getElementById("dashboardSection"),
+            document.getElementById("sensorDataSection"),
+            document.getElementById("historySection")
+        ].filter(Boolean);
 
+        navItems.forEach(item => {
+            item.addEventListener("click", () => {
+                navItems.forEach(i => i.classList.remove("active"));
+                item.classList.add("active");
+            });
+        });
+
+        const setActiveFromScroll = () => {
+            const scrollPos = window.scrollY + 180;
+            let activeIndex = 0;
+
+            sections.forEach((section, index) => {
+                if (section.offsetTop <= scrollPos) activeIndex = index;
+            });
+
+            navItems.forEach((item, index) => {
+                item.classList.toggle("active", index === activeIndex);
+            });
+        };
+
+        window.addEventListener("scroll", setActiveFromScroll, { passive: true });
+        setActiveFromScroll();
+    });
+</script>
+
+<script type="module" src="script.js"></script>
 
 </body>
-
 </html>
